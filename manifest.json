@@ -1,0 +1,14 @@
+{
+  "name": "Anota Treino — Ícones Material",
+  "description": "Troca no lugar os ícones da biblioteca Anota Treino Material 3 pelos Material Symbols Rounded (mesmos componentes, mesmas cópias).",
+  "version": 1,
+  "code": "plugin.js",
+  "icon": "icon.png",
+  "permissions": [
+    "content:read",
+    "content:write",
+    "library:read",
+    "library:write",
+    "allow:downloads"
+  ]
+}

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Anota Treino — Ícones Material</title>
+<style>
+ body{font-family:system-ui,sans-serif;margin:0;padding:16px;background:#1f1f1f;color:#eee;font-size:13px}
+ h1{font-size:15px;margin:0 0 8px} p{color:#aaa;margin:0 0 12px;line-height:1.4}
+ .warn{background:#2a2a2a;color:#ddd;border-radius:8px;padding:10px;margin-bottom:12px;line-height:1.4}
+ .warn.bad{background:#3a1c1c;color:#f3b3b3}
+ button{width:100%;padding:11px;border:0;border-radius:999px;background:#e5e5e5;color:#171717;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:8px}
+ button.sec{background:transparent;color:#e5e5e5;border:1px solid #555}
+ button:disabled{opacity:.45;cursor:default}
+ .row{display:flex;gap:8px} .row button{flex:1}
+ #counts{background:#262626;border-radius:8px;padding:10px;margin-top:4px;line-height:1.5;white-space:pre-wrap;font-size:12px}
+ #counts:empty{display:none}
+ #status{margin-top:10px;white-space:pre-wrap;color:#ccc;max-height:170px;overflow:auto;font-size:12px}
+ .small{font-size:11px;color:#999;margin:0 0 10px}
+</style></head>
+<body>
+ <h1>Anota Treino — Ícones Material</h1>
+ <p>Troca o desenho dos 50 ícones pelos Material Symbols Rounded, sem apagar nem recriar componentes. As cópias mantêm cor e tamanho.</p>
+ <div class="warn" id="warn">Verificando o arquivo…</div>
+ <button id="go" disabled>Trocar ícones</button>
+ <div class="small">Salva uma versão antes ("Antes dos ícones Material"). Cria 5 versões preenchidas para o item ativo da navegação. Pode rodar de novo: o resultado é o mesmo.</div>
+ <div class="row">
+  <button id="diag" class="sec" disabled>Diagnóstico</button>
+  <button id="dl" class="sec" disabled>Baixar log</button>
+ </div>
+ <div class="small">Diagnóstico só lê; não muda nada.</div>
+ <div id="counts"></div>
+ <div id="status">Pronto.</div>
+<script>
+ const $=id=>document.getElementById(id);
+ const go=$('go'), diag=$('diag'), dl=$('dl'), st=$('status'), warn=$('warn'), counts=$('counts');
+ const LOGS={diagnostico:null, troca:null, versaoPlugin:null};
+ let ok=false;
+ function line(t){ st.textContent=t+'\n'+st.textContent; }
+ function stamp(){ const d=new Date(), z=n=>String(n).padStart(2,'0'); return d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+'-'+z(d.getHours())+z(d.getMinutes())+z(d.getSeconds()); }
+ go.addEventListener('click',()=>{ go.disabled=true; diag.disabled=true; go.textContent='Trocando…'; st.textContent='Iniciando…'; parent.postMessage({type:'apply'},'*'); });
+ diag.addEventListener('click',()=>{ diag.disabled=true; diag.textContent='Lendo…'; parent.postMessage({type:'diagnose'},'*'); });
+ dl.addEventListener('click',()=>{
+   const data=Object.assign({arquivoDeLog:'Anota Treino — Ícones Material', baixadoEm:new Date().toISOString()}, LOGS);
+   const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+   const a=document.createElement('a'); a.href=url; a.download='anota-treino-icones-log-'+stamp()+'.json';
+   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),5000);
+   line('Log baixado: '+a.download);
+ });
+ window.addEventListener('message',ev=>{
+   const m=ev.data; if(!m) return;
+   if(m.type==='check'){
+     LOGS.versaoPlugin=m.plugin||null;
+     if(!m.ok){ warn.textContent=m.why; warn.className='warn bad'; return; }
+     ok=true; warn.className='warn'; warn.textContent='Arquivo "'+m.name+'". Pronto.'; go.disabled=false; diag.disabled=false; return;
+   }
+   if(m.type==='diagnose'){
+     const d=m.log||{}; LOGS.diagnostico=d; diag.disabled=!ok; diag.textContent='Diagnóstico'; dl.disabled=false;
+     const r=d.resumo||{};
+     counts.textContent=d.recusado||d.falhou||('Diagnóstico ('+(d.plugin||'')+')\n'+
+       'Ícones antigos: '+(r.iconesAntigos||0)+' · já trocados: '+(r.jaTrocados||0)+' · faltando: '+(r.faltando||0)+'\n'+
+       'Cópias: '+(r.copias||0)+' · principais: '+(r.principais||0)+' · cópias sem cor: '+(r.semCor||0)+'\n'+
+       'Itens ativos da navegação: '+(r.ativosNaNavegacao||0)+' · versões preenchidas já existentes: '+(r.preenchidosExistentes||0));
+     line('Diagnóstico pronto. Use "Baixar log" para salvar.'); return;
+   }
+   if(m.type!=='progress') return;
+   line(m.msg);
+   if(m.finished){
+     go.textContent=m.failed?'Não rodou — ver status':'Concluído (pode rodar de novo)'; go.disabled=!ok; diag.disabled=!ok;
+     if(m.log){ LOGS.troca=m.log; dl.disabled=false; const s=m.log.stats||{}; const c=m.log.conferencia||{};
+       counts.textContent=m.log.recusado||('Troca ('+(m.log.plugin||'')+') em '+(m.log.segundos||0)+' s\n'+
+         'Redesenhados: '+(s.desenhados||0)+' · renomeados: '+(s.renomeados||0)+' · preenchidos novos: '+(s.preenchidosCriados||0)+' · ativos trocados: '+(s.trocasAtivas||0)+'\n'+
+         'Conferidos: '+(s.conferidos||0)+' · problemas: '+((c.problemas||[]).length)+' · erros: '+((m.log.erros||[]).length)); }
+   }
+ });
+ parent.postMessage({type:'check'},'*');
+</script>
+</body></html>
